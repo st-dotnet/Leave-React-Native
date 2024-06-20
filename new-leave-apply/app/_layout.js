@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
 import "../global.css";
 import { AuthContextProvider, useAuth } from "../context/authContext";
+import Toast from "react-native-toast-message";
 
 const MainLayout = () => {
   const { isAuthenticated } = useAuth();
@@ -16,7 +17,12 @@ const MainLayout = () => {
       router.replace("signIn");
     }
   }, [isAuthenticated]);
-  return <Slot />;
+  return (
+    <>
+      <Slot />
+      <Toast />
+    </>
+  );
 };
 
 export default function _layout() {
