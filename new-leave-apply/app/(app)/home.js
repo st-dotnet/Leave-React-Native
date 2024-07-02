@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
   ScrollView,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigation } from "expo-router";
@@ -25,10 +26,11 @@ import { Picker } from "@react-native-picker/picker";
 import Toast from "react-native-toast-message";
 import { LeaveDurationEnum, LeaveTypeEnum } from "../../constants/leaveEnums";
 import * as ImagePicker from "expo-image-picker";
+import { LeaveService } from "../../Services/leaveService";
 
 export default function Home() {
   const navigation = useNavigation();
-  const { logOut } = useAuth();
+  const { logOut, getUserDetail, getAccessToken } = useAuth();
   const scrollViewRef = useRef();
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function Home() {
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
   };
-
+  const [loading, setLoading] = useState(false);
   //----------Show/Hide------------
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -82,7 +84,7 @@ export default function Home() {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result);
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollToEnd({ animated: true });
       }
@@ -121,7 +123,8 @@ export default function Home() {
     const dayOfWeek = date.getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setLoading(true);
     if (leaveType == 0) seterrorLeaveType(true);
     if (selectedLeaveDuration == 0 && showLeaveDurationField)
       seterrorLeaveDuration(true);
@@ -181,17 +184,60 @@ export default function Home() {
       });
       return;
     } else {
-      //Hit API
+      var userDetailJSON = await getUserDetail();
+      var userDetail = JSON.parse(userDetailJSON);
+      const accessToken = await getAccessToken();
+      var data = {
+        leaveType: leaveType,
+        startDate: formatDateToSend(startDate),
+        endDate: formatDateToSend(endDate),
+        reason: reason,
+        leaveDuration: selectedLeaveDuration,
+        medicalFile: "",
+        employeeId: userDetail.employeeId,
+        status: 1,
+        isActive: true,
+        isEditable: true,
+        isUnpaidLeave: false,
+        IsApprovedByHr: false,
+      };
+      await LeaveService.addNewLeave(data, image, accessToken)
+        .then((response) => {
+          if (response?.success) {
+            Toast.show({
+              type: "success",
+              text1: `Leave Applied Successfully`,
+            });
+            resetAllFields();
+          } else {
+            Toast.show({
+              type: "error",
+              text1: `${response?.message}`,
+            });
+          }
+        })
+        .catch((error) => {
+          Toast.show({
+            type: "error",
+            text1: `Failed to apply leave`,
+          });
+        });
+      setLoading(false);
     }
-    //--------------------------
-    console.log("leaveType:", leaveType);
-    console.log("startDate:", startDate);
-    console.log("endDate:", endDate);
-    console.log("reason:", reason);
+  };
+  const resetAllFields = () => {
+    setLeaveType(0);
+    setSelectedLeaveDuration(0);
     setStartDate(null);
     setEndDate(null);
     setReason("");
-    setLeaveType(0);
+    setImage(null);
+  };
+  const formatDateToSend = (date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
   };
 
   const handleLeaveTypeChange = (leaveType) => {
@@ -223,6 +269,15 @@ export default function Home() {
 
   useEffect(() => {
     const onChangeHandleMedical = async () => {
+      if (
+        leaveType == 0 ||
+        selectedLeaveDuration == 0 ||
+        !startDate ||
+        !endDate
+      ) {
+        setShowMedicalField(false);
+        return;
+      }
       const durationInDays =
         Math.floor(
           (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -231,10 +286,8 @@ export default function Home() {
         leaveType == LeaveTypeEnum.SickLeave.value &&
         selectedLeaveDuration == LeaveDurationEnum.FullDay.value
       ) {
-        console.log(leaveType, "x", selectedLeaveDuration);
         setShowMedicalField(true);
       } else {
-        console.log(leaveType, "y", selectedLeaveDuration);
         setShowMedicalField(false);
       }
 
@@ -250,236 +303,268 @@ export default function Home() {
 
   return (
     <SafeAreaView className="flex-1">
-      <View
-        className="flex flex-row justify-between items-center"
-        style={{ paddingTop: hp(7), paddingHorizontal: wp(5) }}
-      >
-        <Text className="font-bold tracking-wider" style={{ fontSize: hp(3) }}>
-          Add Leave
-        </Text>
-        <TouchableOpacity onPress={handleSignOut} style={styles.button}>
-          <Text style={styles.buttonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.flex1}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            ref={scrollViewRef}
-            contentContainerStyle={styles.scrollContent}
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="gray" />
+        </View>
+      ) : (
+        <>
+          <View style={styles.headerContainer}>
+            <Text style={styles.headerText}>Add Leave</Text>
+            <TouchableOpacity onPress={handleSignOut} style={styles.button}>
+              <Text style={styles.buttonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.flex1}
           >
-            {/* --------------------------- */}
-            <View style={styles.inputContainer}>
-              <Text
-                className="font-bold tracking-wider text-gray-700"
-                style={{ fontSize: hp(2) }}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <ScrollView
+                ref={scrollViewRef}
+                contentContainerStyle={styles.scrollContent}
               >
-                Leave Type :{" "}
-              </Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={leaveType}
-                  onValueChange={(itemValue, itemIndex) => {
-                    handleLeaveTypeChange(itemValue);
-                    setLeaveType(itemValue);
-                    seterrorLeaveType(false);
-                  }}
-                >
-                  <Picker.Item
-                    label="Please select leave type..."
-                    value="0"
-                    enabled={false}
-                    color={"gray"}
-                  />
-                  <Picker.Item label="Sick Leave" value="1" color={"black"} />
-                  <Picker.Item label="Casual Leave" value="2" />
-                  <Picker.Item label="Work From Home" value="3" />
-                  <Picker.Item label="Short Leave" value="4" />
-                </Picker>
-              </View>
-              {errorLeaveType && (
-                <Text className="text-red-500">Please select Leave Type!</Text>
-              )}
-            </View>
-            {/*------------------ Leave Duration ---------------------*/}
-            {showLeaveDurationField ? (
-              <View style={styles.inputContainer}>
-                <Text
-                  className="font-bold tracking-wider text-gray-700"
-                  style={{ fontSize: hp(2) }}
-                >
-                  Leave Duration :{" "}
-                </Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={selectedLeaveDuration}
-                    onValueChange={(itemValue, itemIndex) => {
-                      // handleLeaveTypeChange(itemValue);
-                      setSelectedLeaveDuration(itemValue);
-                      seterrorLeaveDuration(false);
-                    }}
-                  >
-                    <Picker.Item
-                      label="Please select leave duration..."
-                      value="0"
-                      enabled={false}
-                      color={"gray"}
-                    />
-                    {leaveDurationOptions.map((option) => (
-                      <Picker.Item
-                        key={option.value}
-                        label={option.label}
-                        value={option.value}
-                        color={"black"}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-                {errorLeaveDuration && (
-                  <Text className="text-red-500">
-                    Please select Leave Duration!
-                  </Text>
-                )}
-              </View>
-            ) : null}
-            {/* --------------------------- */}
-            <View style={styles.inputContainer}>
-              <Text
-                className="font-bold tracking-wider text-gray-700"
-                style={{ fontSize: hp(2) }}
-              >
-                Start Date
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                onPressIn={() => setShowStartPicker(true)}
-                value={startDate ? formatDate(startDate) : ""}
-                placeholder="Select start date"
-              />
-              {showStartPicker && (
-                <RNDateTimePicker
-                  value={startDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onStartDateChange}
-                  minimumDate={new Date()}
-                />
-              )}
-              {errorStartDate && (
-                <Text className="text-red-500">Please select Start Date!</Text>
-              )}
-            </View>
-            <View style={styles.inputContainer}>
-              <Text
-                className="font-bold tracking-wider text-gray-700"
-                style={{ fontSize: hp(2) }}
-              >
-                End Date
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                onPressIn={() => setShowEndPicker(true)}
-                value={endDate ? formatDate(endDate) : ""}
-                placeholder="Select end date"
-              />
-              {showEndPicker && (
-                <RNDateTimePicker
-                  value={endDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onEndDateChange}
-                  minimumDate={startDate}
-                />
-              )}
-              {errorEndDate && (
-                <Text className="text-red-500">Please select End Date!</Text>
-              )}
-            </View>
-            <View style={styles.inputContainer}>
-              <Text
-                className="font-bold tracking-wider text-gray-700"
-                style={{ fontSize: hp(2) }}
-              >
-                Reason
-              </Text>
-              <TextInput
-                style={[styles.textInput, { height: 100 }]}
-                multiline
-                value={reason}
-                onChangeText={(text) => {
-                  setReason(text);
-                  seterrorReason(false);
-                }}
-                placeholder="Enter reason"
-              />
-              {errorReason && (
-                <Text className="text-red-500">Please input a Reason!</Text>
-              )}
-            </View>
-            {showMedicalField ? (
-              <View style={{ paddingBottom: hp(2) }}>
-                <View className="flex flex-row justify-between items-center">
+                {/* --------------------------- */}
+                <View style={styles.inputContainer}>
                   <Text
                     className="font-bold tracking-wider text-gray-700"
                     style={{ fontSize: hp(2) }}
                   >
-                    Medical Report
+                    Leave Type :{" "}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.buttonS}
-                    onPress={handleMedicalChange}
-                  >
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={leaveType}
+                      onValueChange={(itemValue, itemIndex) => {
+                        handleLeaveTypeChange(itemValue);
+                        setLeaveType(itemValue);
+                        seterrorLeaveType(false);
+                      }}
+                    >
+                      <Picker.Item
+                        label="Please select leave type..."
+                        value="0"
+                        enabled={false}
+                        color={"gray"}
+                      />
+                      <Picker.Item
+                        label="Sick Leave"
+                        value="1"
+                        color={"black"}
+                      />
+                      <Picker.Item label="Casual Leave" value="2" />
+                      <Picker.Item label="Work From Home" value="3" />
+                      <Picker.Item label="Short Leave" value="4" />
+                    </Picker>
+                  </View>
+                  {errorLeaveType && (
+                    <Text className="text-red-500">
+                      Please select Leave Type!
+                    </Text>
+                  )}
+                </View>
+                {/*------------------ Leave Duration ---------------------*/}
+                {showLeaveDurationField ? (
+                  <View style={styles.inputContainer}>
                     <Text
-                      className="font-bold tracking-wider text-white"
+                      className="font-bold tracking-wider text-gray-700"
                       style={{ fontSize: hp(2) }}
                     >
-                      Select Image
+                      Leave Duration :{" "}
                     </Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={selectedLeaveDuration}
+                        onValueChange={(itemValue, itemIndex) => {
+                          // handleLeaveTypeChange(itemValue);
+                          setSelectedLeaveDuration(itemValue);
+                          seterrorLeaveDuration(false);
+                        }}
+                      >
+                        <Picker.Item
+                          label="Please select leave duration..."
+                          value="0"
+                          enabled={false}
+                          color={"gray"}
+                        />
+                        {leaveDurationOptions.map((option) => (
+                          <Picker.Item
+                            key={option.value}
+                            label={option.label}
+                            value={option.value}
+                            color={"black"}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+                    {errorLeaveDuration && (
+                      <Text className="text-red-500">
+                        Please select Leave Duration!
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
+                {/* --------------------------- */}
+                <View style={styles.inputContainer}>
+                  <Text
+                    className="font-bold tracking-wider text-gray-700"
+                    style={{ fontSize: hp(2) }}
+                  >
+                    Start Date
+                  </Text>
+                  <TextInput
+                    style={styles.textInput}
+                    onPressIn={() => setShowStartPicker(true)}
+                    value={startDate ? formatDate(startDate) : ""}
+                    placeholder="Select start date"
+                  />
+                  {showStartPicker && (
+                    <RNDateTimePicker
+                      value={startDate || new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={onStartDateChange}
+                      minimumDate={new Date()}
+                    />
+                  )}
+                  {errorStartDate && (
+                    <Text className="text-red-500">
+                      Please select Start Date!
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text
+                    className="font-bold tracking-wider text-gray-700"
+                    style={{ fontSize: hp(2) }}
+                  >
+                    End Date
+                  </Text>
+                  <TextInput
+                    style={styles.textInput}
+                    onPressIn={() => setShowEndPicker(true)}
+                    value={endDate ? formatDate(endDate) : ""}
+                    placeholder="Select end date"
+                  />
+                  {showEndPicker && (
+                    <RNDateTimePicker
+                      value={endDate || new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={onEndDateChange}
+                      minimumDate={startDate}
+                    />
+                  )}
+                  {errorEndDate && (
+                    <Text className="text-red-500">
+                      Please select End Date!
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text
+                    className="font-bold tracking-wider text-gray-700"
+                    style={{ fontSize: hp(2) }}
+                  >
+                    Reason
+                  </Text>
+                  <TextInput
+                    style={[styles.textInput, { height: 100 }]}
+                    multiline
+                    value={reason}
+                    onChangeText={(text) => {
+                      setReason(text);
+                      seterrorReason(false);
+                    }}
+                    placeholder="Enter reason"
+                  />
+                  {errorReason && (
+                    <Text className="text-red-500">Please input a Reason!</Text>
+                  )}
+                </View>
+                {showMedicalField ? (
+                  <View style={{ paddingBottom: hp(2) }}>
+                    <View
+                      className="flex flex-row justify-between items-center"
+                      style={{ paddingBottom: hp(0.5) }}
+                    >
+                      <Text
+                        className="font-bold tracking-wider text-gray-700"
+                        style={{ fontSize: hp(2) }}
+                      >
+                        Medical Report
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.buttonS}
+                        onPress={handleMedicalChange}
+                      >
+                        <Text
+                          className="font-bold tracking-wider text-white"
+                          style={{ fontSize: hp(2) }}
+                        >
+                          Select Image
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.imageC}>
+                      {image && (
+                        <Image
+                          source={{ uri: image.assets[0].uri }}
+                          style={styles.imageO}
+                        />
+                      )}
+                    </View>
+                    {medicalFieldRequired && !image && (
+                      <Text className="text-red-500 text-center">
+                        Please Select Medical Report!
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
+                <View style={styles.btnC}>
+                  <TouchableOpacity
+                    style={styles.buttonSubmit}
+                    onPress={handleSubmit}
+                  >
+                    <Text style={styles.buttonText}>Create Leave</Text>
                   </TouchableOpacity>
                 </View>
-                {image && (
-                  <View style={styles.imageC}>
-                    <Image source={{ uri: image }} style={styles.imageO} />
-                  </View>
-                )}
-                {medicalFieldRequired && !image && (
-                  <Text className="text-red-500 text-center">
-                    Please Select Medical Report!
-                  </Text>
-                )}
-              </View>
-            ) : null}
-            <View style={styles.btnC}>
-              <TouchableOpacity
-                style={styles.buttonSubmit}
-                onPress={handleSubmit}
-              >
-                <Text style={styles.buttonText}>Create Leave</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+              </ScrollView>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: hp(7),
+    paddingHorizontal: wp(5),
+    marginBottom: hp(2),
+  },
+  headerText: {
+    fontSize: hp(3),
+    fontWeight: "bold",
+    letterSpacing: 1.5,
+  },
   button: {
     height: hp(6),
     backgroundColor: "black",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    width: wp(30),
+    paddingHorizontal: wp(3),
   },
   buttonText: {
-    fontSize: hp(2.7),
+    fontSize: hp(2),
     color: "white",
     fontWeight: "bold",
-    letterSpacing: 1.5, // Adjust this value to match 'tracking-wider'
+    letterSpacing: 1.5,
   },
   scrollContent: {
     flexGrow: 1,
@@ -503,7 +588,7 @@ const styles = StyleSheet.create({
     height: hp(5),
   },
   textInput: {
-    height: hp(5),
+    height: hp(5), // Adjust as per your design
     fontSize: hp(2),
     paddingHorizontal: wp(4),
     borderWidth: 1,
@@ -512,10 +597,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ccc",
   },
   imageC: {
-    paddingTop: hp(2),
     alignItems: "center",
     width: "100%",
-    height: 220,
+    height: 200,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    backgroundColor: "#ccc",
   },
   imageO: {
     width: 200,

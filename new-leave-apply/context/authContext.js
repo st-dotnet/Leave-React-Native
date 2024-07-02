@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
-import parseJwt from './ParseJwt';
+import parseJwt from "./ParseJwt";
 
 const TOKEN_KEY = "accessToken";
 const USER = "user";
@@ -30,11 +30,11 @@ export const AuthContextProvider = ({ children }) => {
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Error fetching access token:', error);
+        console.error("Error fetching access token:", error);
         setIsAuthenticated(false);
       }
     }
-    
+
     fetchAccessToken();
   }, []);
 
@@ -46,10 +46,10 @@ export const AuthContextProvider = ({ children }) => {
         isExternalLogin: false,
       };
       const response = await axios
-        .post(`${API_URL}/employee/authenticate`, body,{})
+        .post(`${API_URL}/employee/authenticate`, body, {})
         .then((response) => response)
         .catch((error) => {
-          console.error('Error api0:', error);
+          console.error("Error api0:", error);
           setIsAuthenticated(false);
           return;
         });
@@ -58,11 +58,11 @@ export const AuthContextProvider = ({ children }) => {
         await AsyncStorage.setItem(TOKEN_KEY, response.data.api_token);
         await AsyncStorage.setItem(USER, JSON.stringify(response.data.user));
         await AsyncStorage.setItem(ROLE, response.data.user.role);
-      setIsAuthenticated(true);
+        setIsAuthenticated(true);
         return true;
       }
     } catch (error) {
-      console.error('Error api:', error);
+      console.error("Error api:", error);
       setIsAuthenticated(false);
       return;
     }
@@ -79,8 +79,19 @@ export const AuthContextProvider = ({ children }) => {
     }
   };
 
+  getUserDetail = async () => {
+    const userDetail = await AsyncStorage.getItem(USER);
+    return userDetail;
+  };
+
+  getAccessToken = async () => {
+    const accessToken = await AsyncStorage.getItem(TOKEN_KEY);
+    return accessToken;
+  };
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logOut }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, login, logOut, getUserDetail, getAccessToken }}
+    >
       {children}
     </AuthContext.Provider>
   );
