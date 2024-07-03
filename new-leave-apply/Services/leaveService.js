@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Platform } from "react-native";
-const API_URL = "https://stagingcrm.supremetechnologiesindia.com/backend/api";
+const API_URL = "https://crm.supremetechnologiesindia.com/backend/api";
 
 const addNewLeave = async (value, image, accessToken) => {
   let formData = new FormData();

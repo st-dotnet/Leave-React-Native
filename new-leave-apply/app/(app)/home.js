@@ -124,7 +124,6 @@ export default function Home() {
     return dayOfWeek === 0 || dayOfWeek === 6;
   };
   const handleSubmit = async () => {
-    setLoading(true);
     if (leaveType == 0) seterrorLeaveType(true);
     if (selectedLeaveDuration == 0 && showLeaveDurationField)
       seterrorLeaveDuration(true);
@@ -184,6 +183,7 @@ export default function Home() {
       });
       return;
     } else {
+      setLoading(true);
       var userDetailJSON = await getUserDetail();
       var userDetail = JSON.parse(userDetailJSON);
       const accessToken = await getAccessToken();

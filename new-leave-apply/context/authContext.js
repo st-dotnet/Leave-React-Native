@@ -6,7 +6,7 @@ import parseJwt from "./ParseJwt";
 const TOKEN_KEY = "accessToken";
 const USER = "user";
 const ROLE = "role";
-const API_URL = "https://stagingcrm.supremetechnologiesindia.com/backend/api";
+const API_URL = "https://crm.supremetechnologiesindia.com/backend/api";
 export const AuthContext = createContext();
 
 export const AuthContextProvider = ({ children }) => {

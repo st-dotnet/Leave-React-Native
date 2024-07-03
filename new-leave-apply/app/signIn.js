@@ -77,6 +77,7 @@ export default function SignIn() {
                 className="flex-1 font-semibold text-neutral-700"
                 placeholder="Password"
                 placeholderTextColor={"gray"}
+                secureTextEntry
               />
             </View>
             <View className="items-center">
