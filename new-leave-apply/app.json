@@ -18,7 +18,7 @@
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera.",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library."
       },
-      "bundleIdentifier": "y"
+      "bundleIdentifier": "st.supreme.leave"
     },
     "android": {
       "adaptiveIcon": {
