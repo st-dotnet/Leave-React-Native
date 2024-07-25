@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
@@ -29,6 +29,7 @@ import * as ImagePicker from "expo-image-picker";
 import { LeaveService } from "../../Services/leaveService";
 
 export default function Home() {
+  const router = useRouter();
   const navigation = useNavigation();
   const { logOut, getUserDetail, getAccessToken } = useAuth();
   const scrollViewRef = useRef();
@@ -86,12 +87,11 @@ export default function Home() {
 
     if (!result.canceled) {
       setImage(result);
-      // if (scrollViewRef.current) {
-      //   scrollViewRef.current.scrollToEnd({ animated: true });
-      // }
     }
   };
-
+  const handleDelete = async () => {
+    router.replace("deleteAccount");
+  };
   //----------------------- Error States------------------------
   const [errorLeaveType, seterrorLeaveType] = useState(false);
   const [errorLeaveDuration, seterrorLeaveDuration] = useState(false);
@@ -328,6 +328,11 @@ export default function Home() {
                 <View style={styles.container}>
                   <View style={styles.header}>
                     <Text style={styles.title}>Apply Leaves</Text>
+                    <Text style={styles.text}>
+                        <TouchableOpacity onPress={handleDelete}>
+                          <Text style={styles.linkText}>Delete account!</Text>
+                        </TouchableOpacity>
+                      </Text>
                     <TouchableOpacity
                       onPress={handleSignOut}
                       style={styles.signoutButton}
@@ -533,6 +538,15 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  text: {
+    fontSize: hp(2.3),
+    color: '#000',
+  },
+  linkText: {
+    fontSize: hp(2.3),
+    color: '#007BFF',
+    textDecorationLine: 'underline',
+  },
   container: {
     flex: 1,
     padding: 16,
