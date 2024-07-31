@@ -22,18 +22,18 @@ import {
 
 const SignUp = () => {
   const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const resetFields = () => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
   };
 
   const validateEmail = (email) => {
@@ -43,24 +43,22 @@ const SignUp = () => {
 
   const handleSignUpClicked = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      Alert.alert('Please fill all the fields!');
+      Alert.alert("Please fill all the fields!");
       return;
     }
     if (!validateEmail(email)) {
-      Alert.alert('Email is invalid');
+      Alert.alert("Email is invalid");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Passwords do not match');
+      Alert.alert("Passwords do not match");
       return;
     }
     resetFields();
     Alert.alert(
       "Sign Up",
       "Request sent! Your account will be approved within 24 hours.",
-      [
-        { text: "OK", onPress: () => handleBack() }
-      ]
+      [{ text: "OK", onPress: () => handleBack() }]
     );
   };
 

@@ -32,14 +32,32 @@ export default function Home() {
   const router = useRouter();
   const navigation = useNavigation();
   const { logOut, getUserDetail, getAccessToken } = useAuth();
-  const scrollViewRef = useRef();
+  const [userDetail, setUserDetail] = useState(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
+  useEffect(() => {
+    const fetchUserDetail = async () => {
+      try {
+        const userDetailJSON = await getUserDetail();
+        const userDetail = JSON.parse(userDetailJSON);
+        setUserDetail(userDetail);
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+
+    fetchUserDetail();
+  }, []);
+
   const handleSignOut = async () => {
     await logOut();
+  };
+
+  const handleApprove = async () => {
+    router.push("(app)/approve");
   };
 
   const formatDate = (date) => {
@@ -187,8 +205,6 @@ export default function Home() {
       return;
     } else {
       setLoading(true);
-      var userDetailJSON = await getUserDetail();
-      var userDetail = JSON.parse(userDetailJSON);
       const accessToken = await getAccessToken();
       var data = {
         leaveType: leaveType,
@@ -314,224 +330,245 @@ export default function Home() {
           <ActivityIndicator size="large" color="gray" />
         </View>
       ) : (
-        <SafeAreaView style={{ flex: 1 }}>
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <ScrollView
-                contentContainerStyle={styles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-                ref={scrollViewRef}
-              >
-                <View style={styles.container}>
-                  <View style={styles.header}>
-                    <Text style={styles.title}>Apply Leaves</Text>
-                    <Text style={styles.text}>
-                        <TouchableOpacity onPress={handleDelete}>
-                          <Text style={styles.linkText}>Delete account!</Text>
-                        </TouchableOpacity>
-                      </Text>
-                    <TouchableOpacity
-                      onPress={handleSignOut}
-                      style={styles.signoutButton}
-                    >
-                      <Text style={styles.signOut}>Sign Out</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.label}>Leave Type</Text>
-                  <View style={styles.pickerContainer}>
-                    <View
-                      style={Platform.OS === "ios" ? styles.pickerWrapper : ""}
-                    >
-                      <Picker
-                        selectedValue={leaveType}
-                        onValueChange={(itemValue, itemIndex) => {
-                          setLeaveType(itemValue);
-                          handleLeaveTypeChange(itemValue);
-                          seterrorLeaveType(false);
-                        }}
-                      >
-                        <Picker.Item
-                          label="Select Leave Type"
-                          value={0}
-                          enabled={false}
-                          color={"gray"}
-                        />
-                        {Object.values(LeaveTypeEnum).map((item) => (
-                          <Picker.Item
-                            key={item.value}
-                            label={item.name}
-                            value={item.value}
-                            color={"black"}
-                          />
-                        ))}
-                      </Picker>
-                    </View>
-                  </View>
-                  {errorLeaveType && (
-                    <Text style={styles.errorText}>
-                      Please select a leave type.
-                    </Text>
-                  )}
-
-                  {showLeaveDurationField && (
-                    <>
-                      <Text style={styles.label}>Leave Duration</Text>
-                      <View style={styles.pickerContainer}>
-                        <View
-                          style={
-                            Platform.OS === "ios" ? styles.pickerWrapper : ""
-                          }
-                        >
-                          <Picker
-                            selectedValue={selectedLeaveDuration}
-                            onValueChange={(itemValue) => {
-                              setSelectedLeaveDuration(itemValue);
-                              seterrorLeaveDuration(false);
-                            }}
-                          >
-                            <Picker.Item
-                              label="Select Leave Duration"
-                              value={0}
-                              enabled={false}
-                              color={"gray"}
-                            />
-                            {leaveDurationOptions.map((item) => (
-                              <Picker.Item
-                                key={item.value}
-                                label={item.label}
-                                value={item.value}
-                                color={"black"}
-                              />
-                            ))}
-                          </Picker>
-                        </View>
-                      </View>
-                      {errorLeaveDuration && (
-                        <Text style={styles.errorText}>
-                          Please select leave duration.
-                        </Text>
-                      )}
-                    </>
-                  )}
-
-                  <Text style={styles.label}>Start Date</Text>
-                  <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowStartPicker(true)}
-                  >
-                    <Text style={styles.datePickerButtonText}>
-                      {startDate ? formatDate(startDate) : "Select Start Date"}
-                    </Text>
-                  </TouchableOpacity>
-                  {showStartPicker && (
-                    <RNDateTimePicker
-                      value={startDate || new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={onStartDateChange}
-                      minimumDate={new Date()}
-                    />
-                  )}
-                  {errorStartDate && (
-                    <Text style={styles.errorText}>
-                      Please select start date.
-                    </Text>
-                  )}
-
-                  <Text style={styles.label}>End Date</Text>
-                  <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowEndPicker(true)}
-                  >
-                    <Text style={styles.datePickerButtonText}>
-                      {endDate ? formatDate(endDate) : "Select End Date"}
-                    </Text>
-                  </TouchableOpacity>
-                  {showEndPicker && (
-                    <RNDateTimePicker
-                      value={endDate || new Date()}
-                      mode="date"
-                      display="default"
-                      onChange={onEndDateChange}
-                      minimumDate={startDate}
-                    />
-                  )}
-                  {errorEndDate && (
-                    <Text style={styles.errorText}>
-                      Please select end date.
-                    </Text>
-                  )}
-
-                  <Text style={styles.label}>Reason</Text>
-                  <TextInput
-                    style={[styles.input, { height: hp("20%") }]}
-                    multiline={true}
-                    numberOfLines={4}
-                    value={reason}
-                    onChangeText={(text) => {
-                      setReason(text);
-                      seterrorReason(false);
-                    }}
-                  />
-                  {errorReason && (
-                    <Text style={styles.errorText}>Please enter reason.</Text>
-                  )}
-
-                  {showMedicalField ? (
-                    <View style={{ paddingBottom: hp(2) }}>
-                      <View
-                        className="flex flex-row justify-between items-center"
-                        style={{ paddingBottom: hp(0.5) }}
-                      >
-                        <Text
-                          className="font-bold tracking-wider text-gray-700"
-                          style={{ fontSize: hp(2) }}
-                        >
-                          Medical Report
-                        </Text>
+        <>
+          <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <ScrollView
+                  contentContainerStyle={styles.scrollViewContent}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.container}>
+                    <View style={styles.header}>
+                      <Text style={styles.title}>Apply Leaves</Text>
+                      
+                      <View>
                         <TouchableOpacity
-                          style={styles.buttonS}
-                          onPress={handleMedicalChange}
+                          onPress={handleSignOut}
+                          style={styles.signoutButton}
+                        >
+                          <Text style={styles.signOut}>Sign Out</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.text}>
+                          <TouchableOpacity onPress={handleDelete}>
+                            <Text style={styles.linkText}>Delete account!</Text>
+                          </TouchableOpacity>
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.label}>Leave Type</Text>
+                    <View style={styles.pickerContainer}>
+                      <View
+                        style={
+                          Platform.OS === "ios" ? styles.pickerWrapper : ""
+                        }
+                      >
+                        <Picker
+                          selectedValue={leaveType}
+                          onValueChange={(itemValue, itemIndex) => {
+                            setLeaveType(itemValue);
+                            handleLeaveTypeChange(itemValue);
+                            seterrorLeaveType(false);
+                          }}
+                        >
+                          <Picker.Item
+                            label="Select Leave Type"
+                            value={0}
+                            enabled={false}
+                            color={"gray"}
+                          />
+                          {Object.values(LeaveTypeEnum).map((item) => (
+                            <Picker.Item
+                              key={item.value}
+                              label={item.name}
+                              value={item.value}
+                              color={"black"}
+                            />
+                          ))}
+                        </Picker>
+                      </View>
+                    </View>
+                    {errorLeaveType && (
+                      <Text style={styles.errorText}>
+                        Please select a leave type.
+                      </Text>
+                    )}
+
+                    {showLeaveDurationField && (
+                      <>
+                        <Text style={styles.label}>Leave Duration</Text>
+                        <View style={styles.pickerContainer}>
+                          <View
+                            style={
+                              Platform.OS === "ios" ? styles.pickerWrapper : ""
+                            }
+                          >
+                            <Picker
+                              selectedValue={selectedLeaveDuration}
+                              onValueChange={(itemValue) => {
+                                setSelectedLeaveDuration(itemValue);
+                                seterrorLeaveDuration(false);
+                              }}
+                            >
+                              <Picker.Item
+                                label="Select Leave Duration"
+                                value={0}
+                                enabled={false}
+                                color={"gray"}
+                              />
+                              {leaveDurationOptions.map((item) => (
+                                <Picker.Item
+                                  key={item.value}
+                                  label={item.label}
+                                  value={item.value}
+                                  color={"black"}
+                                />
+                              ))}
+                            </Picker>
+                          </View>
+                        </View>
+                        {errorLeaveDuration && (
+                          <Text style={styles.errorText}>
+                            Please select leave duration.
+                          </Text>
+                        )}
+                      </>
+                    )}
+
+                    <Text style={styles.label}>Start Date</Text>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowStartPicker(true)}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {startDate
+                          ? formatDate(startDate)
+                          : "Select Start Date"}
+                      </Text>
+                    </TouchableOpacity>
+                    {showStartPicker && (
+                      <RNDateTimePicker
+                        value={startDate || new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={onStartDateChange}
+                        minimumDate={new Date()}
+                      />
+                    )}
+                    {errorStartDate && (
+                      <Text style={styles.errorText}>
+                        Please select start date.
+                      </Text>
+                    )}
+
+                    <Text style={styles.label}>End Date</Text>
+                    <TouchableOpacity
+                      style={styles.datePickerButton}
+                      onPress={() => setShowEndPicker(true)}
+                    >
+                      <Text style={styles.datePickerButtonText}>
+                        {endDate ? formatDate(endDate) : "Select End Date"}
+                      </Text>
+                    </TouchableOpacity>
+                    {showEndPicker && (
+                      <RNDateTimePicker
+                        value={endDate || new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={onEndDateChange}
+                        minimumDate={startDate}
+                      />
+                    )}
+                    {errorEndDate && (
+                      <Text style={styles.errorText}>
+                        Please select end date.
+                      </Text>
+                    )}
+
+                    <Text style={styles.label}>Reason</Text>
+                    <TextInput
+                      style={[styles.input, { height: hp("20%") }]}
+                      multiline={true}
+                      numberOfLines={4}
+                      value={reason}
+                      onChangeText={(text) => {
+                        setReason(text);
+                        seterrorReason(false);
+                      }}
+                    />
+                    {errorReason && (
+                      <Text style={styles.errorText}>Please enter reason.</Text>
+                    )}
+
+                    {showMedicalField ? (
+                      <View style={{ paddingBottom: hp(2) }}>
+                        <View
+                          className="flex flex-row justify-between items-center"
+                          style={{ paddingBottom: hp(0.5) }}
                         >
                           <Text
-                            className="font-bold tracking-wider text-white"
+                            className="font-bold tracking-wider text-gray-700"
                             style={{ fontSize: hp(2) }}
                           >
-                            Select Image
+                            Medical Report
                           </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.imageC}>
-                        {image && (
-                          <Image
-                            source={{ uri: image.assets[0].uri }}
-                            style={styles.imageO}
-                          />
+                          <TouchableOpacity
+                            style={styles.buttonS}
+                            onPress={handleMedicalChange}
+                          >
+                            <Text
+                              className="font-bold tracking-wider text-white"
+                              style={{ fontSize: hp(2) }}
+                            >
+                              Select Image
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={styles.imageC}>
+                          {image && (
+                            <Image
+                              source={{ uri: image.assets[0].uri }}
+                              style={styles.imageO}
+                            />
+                          )}
+                        </View>
+                        {medicalFieldRequired && !image && (
+                          <Text className="text-red-500 text-center">
+                            Please Select Medical Report!
+                          </Text>
                         )}
                       </View>
-                      {medicalFieldRequired && !image && (
-                        <Text className="text-red-500 text-center">
-                          Please Select Medical Report!
-                        </Text>
-                      )}
-                    </View>
-                  ) : null}
+                    ) : null}
 
-                  <TouchableOpacity
-                    style={styles.buttonS}
-                    onPress={handleSubmit}
-                  >
-                    <Text style={styles.submitButtonText}>Create Leave</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+                    <TouchableOpacity
+                      style={styles.buttonS}
+                      onPress={handleSubmit}
+                    >
+                      <Text style={styles.submitButtonText}>Create Leave</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+          <View style={styles.footer}>
+            {userDetail &&
+              (userDetail.role == "BDM" ||
+                userDetail.role == "HR" ||
+                userDetail.role == "TeamLead") && (
+                <TouchableOpacity
+                  onPress={handleApprove}
+                  style={styles.approveButton}
+                >
+                  <Text style={styles.signOut}>Pending Leaves</Text>
+                </TouchableOpacity>
+              )}
+          </View>
+        </>
       )}
     </>
   );
@@ -540,12 +577,13 @@ export default function Home() {
 const styles = StyleSheet.create({
   text: {
     fontSize: hp(2.3),
-    color: '#000',
+    color: "#000",
   },
   linkText: {
-    fontSize: hp(2.3),
-    color: '#007BFF',
-    textDecorationLine: 'underline',
+    marginTop: hp(1.5),
+    fontSize: hp(2),
+    color: "#007BFF",
+    textDecorationLine: "underline",
   },
   container: {
     flex: 1,
@@ -560,19 +598,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: Platform.OS === "ios" ? hp(3) : hp(2.3),
     fontWeight: "bold",
   },
   signoutButton: {
-    height: hp(6),
-    backgroundColor: "black",
+    height: hp(3.6),
+    backgroundColor: "red",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: wp(3),
+    paddingHorizontal: wp(2),
   },
   signOut: {
-    fontSize: hp(2),
+    fontSize: Platform.OS === "ios" ? hp(2) : hp(1.7),
     color: "white",
     fontWeight: "bold",
     letterSpacing: 1.5,
@@ -642,5 +680,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 115,
     overflow: "hidden",
+  },
+  footer: {
+    borderTopColor: "#ccc",
+    position: "fixed",
+    bottom: 0,
+  },
+  approveButton: {
+    height: hp(8),
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: wp(2),
   },
 });

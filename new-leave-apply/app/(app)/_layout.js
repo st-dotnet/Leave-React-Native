@@ -1,8 +1,8 @@
 import React from 'react'
-import { Stack } from 'expo-router'
+import { Slot, Stack } from 'expo-router'
 
-export default function _layout() {
+export default function NestedLayout() {
   return (
-   <Stack />
+    <Slot />
   )
 }

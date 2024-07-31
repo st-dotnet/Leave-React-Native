@@ -33,6 +33,68 @@ const addNewLeave = async (value, image, accessToken) => {
   }
 };
 
+const getAllPendingLeaves = async (accessToken) => {
+  try {
+    const response = await axios.get(`${API_URL}/Leaves/getAllPendingLeaves`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    if (response.data) {
+      return response.data.leaveValue;
+    }
+  } catch (error) {
+    console.error("Error api:", error);
+    setIsAuthenticated(false);
+    return;
+  }
+};
+
+const approveLeaveByTL = async (
+  leaveId,
+  accessToken,
+  isApprovedByHr = false
+) => {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+  };
+  const response = await axios
+    .put(
+      `${API_URL}/Leaves/approveLeave?leaveId=${leaveId}&isApprovedByHr=${isApprovedByHr}`,
+      {},
+      { headers }
+    )
+    .then((response) => response)
+    .catch((error) => {
+      return error.response;
+    });
+  return response;
+};
+
+const approveLeaveByHR = async (
+  leaveId,
+  accessToken,
+  IsApprovedByHr = true
+) => {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+  };
+  const response = await axios
+    .put(
+      `${API_URL}/Leaves/approveLeave?leaveId=${leaveId}&isApprovedByHr=${IsApprovedByHr}`,
+      {},
+      { headers }
+    )
+    .then((response) => response)
+    .catch((error) => {
+      return error.response;
+    });
+  return response;
+};
+
 export const LeaveService = {
   addNewLeave,
+  getAllPendingLeaves,
+  approveLeaveByTL,
+  approveLeaveByHR,
 };

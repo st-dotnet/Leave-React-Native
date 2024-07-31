@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  SafeAreaView,
 } from "react-native";
 import React, { useRef, useState } from "react";
 import {
@@ -39,9 +40,9 @@ export default function SignIn() {
   };
 
   return (
-    <View className="flex-1">
+    <SafeAreaView style={styles.safeArea}>
       <View
-        style={{ paddingTop: hp(20), paddingHorizontal: wp(5) }}
+        style={{ paddingTop: hp(15), paddingHorizontal: wp(5) }}
         className="flex-1 gap-12"
       >
         <View className="items-center">
@@ -80,7 +81,7 @@ export default function SignIn() {
                 secureTextEntry
               />
             </View>
-            <View className="items-center" style={{ paddingTop: hp(2)}}>
+            <View className="items-center" style={{ paddingTop: hp(2) }}>
               {loading ? (
                 <View className="flex-flow justify-center">
                   <Loading size={hp(6.5)} />
@@ -102,11 +103,14 @@ export default function SignIn() {
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   button: {
     height: hp(6.5),
     backgroundColor: "black",
@@ -122,17 +126,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: hp(1),
   },
   text: {
     fontSize: hp(2.3),
-    color: '#000',
+    color: "#000",
   },
   linkText: {
     fontSize: hp(2.3),
-    color: '#007BFF',
-    textDecorationLine: 'underline',
+    color: "#007BFF",
+    textDecorationLine: "underline",
   },
 });
