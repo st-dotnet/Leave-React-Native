@@ -152,11 +152,18 @@ const Approve = () => {
               <View style={styles.rightSpacer}></View>
             </View>
             <View style={styles.listContainer}>
-              <FlatList
-                data={data}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-              />
+              {data.length === 0 ? (
+                <View style={styles.noDataContainer}>
+                  <AntDesign name="inbox" size={160} color="#777" />
+                  <Text style={styles.noDataText}>No Pending Leaves</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={data}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderItem}
+                />
+              )}
             </View>
             {selectedItem && (
               <Modal
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#fff",
-    paddingTop: Platform.OS === "ios" ? hp(0) : hp(7),
+    paddingTop: Platform.OS === "ios" ? hp(1.5) : hp(7),
   },
   header: {
     flexDirection: "row",
@@ -275,6 +282,7 @@ const styles = StyleSheet.create({
     color: "#777",
   },
   listContainer: {
+    flex: 1,
     paddingTop: hp(3),
     paddingHorizontal: wp(5),
   },
@@ -345,6 +353,15 @@ const styles = StyleSheet.create({
     flex: 2,
     textAlign: "right",
     flexWrap: "wrap",
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataText: {
+    fontSize: 24,
+    color: "#777",
   },
 });
 
